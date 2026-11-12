@@ -1,6 +1,7 @@
 import { planOf } from "@/config/plans";
 import type { AuthContext } from "./auth";
 import { db } from "./db";
+import { isSuperadmin } from "./superadmin";
 import { workspaceUsage } from "./workspace";
 
 /** Everything the dashboard shell needs about the signed-in user and active workspace. */
@@ -26,6 +27,7 @@ export async function loadMe(auth: AuthContext) {
     usage,
     limits: planOf(workspace.plan).limits,
     openConversations,
+    superadmin: isSuperadmin(user.email),
   };
 }
 

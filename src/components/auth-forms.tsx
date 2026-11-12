@@ -143,6 +143,11 @@ export function SignupForm({ invite }: { invite?: { token: string; workspace: st
       <Button type="submit" size="lg" loading={busy} className="w-full">
         {invite ? "Accept invitation" : "Create account"}
       </Button>
+      <p className="text-center text-xs leading-relaxed text-slate-500">
+        By continuing you agree to our{" "}
+        <Link href="/terms" className="underline hover:text-ink">Terms of Service</Link> and{" "}
+        <Link href="/privacy" className="underline hover:text-ink">Privacy Policy</Link>.
+      </p>
       <p className="text-center text-sm text-slate-500">
         Already have an account?{" "}
         <Link href={invite ? `/login?invite=${invite.token}` : "/login"} className="font-medium text-brand-700 hover:underline">

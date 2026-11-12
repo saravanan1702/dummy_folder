@@ -383,6 +383,8 @@ export default function LandingPage() {
             <a href="#features" className="hover:text-ink">Features</a>
             <a href="#pricing" className="hover:text-ink">Pricing</a>
             <Link href="/login" className="hover:text-ink">Sign in</Link>
+            <Link href="/terms" className="hover:text-ink">Terms</Link>
+            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
             <a href={`mailto:${brand.supportEmail}`} className="hover:text-ink">Contact</a>
           </nav>
           <p className="text-sm text-slate-400">© {new Date().getFullYear()} {brand.name}</p>

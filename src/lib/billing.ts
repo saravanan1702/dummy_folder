@@ -10,7 +10,11 @@ export function stripeConfigured(): boolean {
 export function stripe(): Stripe {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("Stripe is not configured");
-  client ??= new Stripe(key);
+  // STRIPE_API_BASE lets tests point the SDK at a local stub; leave unset in production.
+  const base = process.env.STRIPE_API_BASE ? new URL(process.env.STRIPE_API_BASE) : null;
+  client ??= base
+    ? new Stripe(key, { host: base.hostname, port: Number(base.port) || undefined, protocol: base.protocol.replace(":", "") as "http" | "https" })
+    : new Stripe(key);
   return client;
 }
 

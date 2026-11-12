@@ -11,7 +11,7 @@ export const WORKSPACE_COOKIE = "cv_ws";
 const SESSION_DAYS = 30;
 
 function cookieSecure() {
-  const url = process.env.APP_URL;
+  const url = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL;
   if (url) return url.startsWith("https://");
   return isProd;
 }

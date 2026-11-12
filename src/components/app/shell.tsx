@@ -13,6 +13,7 @@ import {
   Plus,
   Rocket,
   Settings,
+  ShieldCheck,
   Sparkles,
   UserRound,
   Users,
@@ -297,6 +298,17 @@ function UserMenu() {
           >
             Your profile
           </MenuItem>
+          {me.superadmin && (
+            <MenuItem
+              icon={<ShieldCheck />}
+              onClick={() => {
+                close();
+                router.push("/admin");
+              }}
+            >
+              Platform admin
+            </MenuItem>
+          )}
           <MenuItem
             icon={<LogOut />}
             onClick={async () => {

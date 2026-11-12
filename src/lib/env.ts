@@ -18,7 +18,12 @@ export function appSecret(): string {
 
 /** Public base URL of the app (no trailing slash). Falls back to the request's own origin. */
 export function appUrl(req?: Request): string {
-  const configured = process.env.APP_URL?.replace(/\/+$/, "");
+  // RENDER_EXTERNAL_URL / VERCEL_PROJECT_PRODUCTION_URL are provided by those hosts automatically.
+  const configured = (
+    process.env.APP_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "")
+  ).replace(/\/+$/, "");
   if (configured) return configured;
   if (req) {
     const proto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();

@@ -27,6 +27,8 @@ A full multi-tenant SaaS for building chatbots and automating conversations on *
 - **Workspaces & team** — multiple workspaces per user, Owner / Admin / Agent roles, email invites.
 - **Plans & limits** — Free / Pro / Business limits enforced server-side (`src/config/plans.ts`).
 - **REST API** — API keys, `/api/v1/contacts` (list, get, tag, message, start flow).
+- **Platform admin** — `/admin` for the owners listed in `SUPERADMIN_EMAILS`: all customers, plans, MRR, usage, manual plan changes.
+- **Legal pages** — `/terms` and `/privacy` templates (fill in `src/config/legal.ts`, have them reviewed).
 - **Security** — scrypt passwords, hashed session & API tokens, CSRF origin checks, AES-256-GCM encrypted channel credentials, signed webhooks (Telegram secret header, Meta `X-Hub-Signature-256`, Stripe), SSRF-guarded customer webhooks, Postgres-backed rate limiting, tenant scoping on every query.
 
 ## Run locally
@@ -49,11 +51,14 @@ docker compose up --build   # http://localhost:3000
 
 Useful scripts: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`.
 
+End-to-end tests for Telegram, WhatsApp, Messenger, Instagram and Stripe run against local simulators — see `tests/e2e/README.md`.
+
 ## Deploying to production
 
 The app is a single Node service plus Postgres, so any of these work:
 
-- **Render / Railway / Fly.io / a VPS (recommended)** — deploy the `Dockerfile`. The container applies migrations on start, and the built-in scheduler processes flow delays and broadcasts. Add a managed Postgres and set the env vars below.
+- **Render (easiest)** — the repo includes `render.yaml`. In Render choose *New → Blueprint*, pick this repo, and it creates the database and web service for you. The public URL is detected automatically.
+- **Railway / Fly.io / a VPS** — deploy the `Dockerfile`. The container applies migrations on start, and the built-in scheduler processes flow delays and broadcasts. Add a managed Postgres and set the env vars below.
 - **Vercel** — works too; set `DISABLE_INTERNAL_SCHEDULER=1` and `CRON_SECRET`, and call `GET /api/cron/tick` every minute with `Authorization: Bearer $CRON_SECRET` (Vercel Cron or any external cron).
 
 Required environment variables:
