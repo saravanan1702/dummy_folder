@@ -1,0 +1,496 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Accounts ─────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions       Session[]
+  memberships    Membership[]
+  passwordResets PasswordReset[]
+  assigned       Conversation[]  @relation("ConversationAssignee")
+  messages       Message[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  timezone  String   @default("UTC")
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Billing (Stripe)
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  subscriptionStatus   String?
+  currentPeriodEnd     DateTime?
+
+  // Minutes automation stays paused after a human agent replies.
+  takeoverMinutes Int @default(30)
+
+  memberships   Membership[]
+  invites       Invite[]
+  channels      Channel[]
+  contacts      Contact[]
+  tags          Tag[]
+  customFields  CustomField[]
+  conversations Conversation[]
+  messages      Message[]
+  flows         Flow[]
+  triggers      Trigger[]
+  flowRuns      FlowRun[]
+  broadcasts    Broadcast[]
+  apiKeys       ApiKey[]
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  AGENT
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        Role     @default(AGENT)
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model Invite {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  role        Role      @default(AGENT)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  prefix      String
+  keyHash     String    @unique
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+// ───────────────────────────── Channels ─────────────────────────────
+
+enum ChannelType {
+  WEBCHAT
+  TELEGRAM
+  WHATSAPP
+  MESSENGER
+  INSTAGRAM
+}
+
+enum ChannelStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+model Channel {
+  id          String        @id @default(cuid())
+  workspaceId String
+  type        ChannelType
+  name        String
+  status      ChannelStatus @default(ACTIVE)
+  // Provider-side identifier (bot id, phone number id, page id, ig account id).
+  externalId  String?
+  // AES-256-GCM encrypted JSON blob with provider credentials.
+  credentials String?
+  // Random secret used to authenticate inbound webhooks (verify token / secret header).
+  webhookSecret String
+  // Public, non-secret settings (widget appearance, bot username, phone display…).
+  config      Json          @default("{}")
+  lastError   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contacts      Contact[]
+  conversations Conversation[]
+
+  @@index([workspaceId])
+}
+
+// ───────────────────────────── Audience ─────────────────────────────
+
+enum ContactStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
+model Contact {
+  id            String        @id @default(cuid())
+  workspaceId   String
+  channelId     String
+  // Provider user id (telegram chat id, wa phone, PSID, visitor id).
+  externalId    String
+  firstName     String?
+  lastName      String?
+  username      String?
+  email         String?
+  phone         String?
+  avatarUrl     String?
+  locale        String?
+  status        ContactStatus @default(SUBSCRIBED)
+  // Custom field values keyed by CustomField.key
+  fields        Json          @default("{}")
+  source        String?
+  isPreview     Boolean       @default(false)
+  lastInboundAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channel      Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  tags         ContactTag[]
+  conversation Conversation?
+  messages     Message[]
+  flowRuns     FlowRun[]
+
+  @@unique([channelId, externalId])
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, status])
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  createdAt   DateTime @default(now())
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contacts  ContactTag[]
+
+  @@unique([workspaceId, name])
+}
+
+model ContactTag {
+  contactId String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@index([tagId])
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  DATE
+}
+
+model CustomField {
+  id          String    @id @default(cuid())
+  workspaceId String
+  key         String
+  label       String
+  type        FieldType @default(TEXT)
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, key])
+}
+
+// ───────────────────────────── Messaging ─────────────────────────────
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+}
+
+model Conversation {
+  id             String             @id @default(cuid())
+  workspaceId    String
+  contactId      String             @unique
+  channelId      String
+  status         ConversationStatus @default(CLOSED)
+  assigneeId     String?
+  // Automation is skipped while now < botPausedUntil (human takeover).
+  botPausedUntil DateTime?
+  unreadCount    Int                @default(0)
+  lastMessageAt  DateTime           @default(now())
+  lastPreview    String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  channel   Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  assignee  User?     @relation("ConversationAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  messages  Message[]
+
+  @@index([workspaceId, status, lastMessageAt])
+  @@index([workspaceId, lastMessageAt])
+}
+
+enum Direction {
+  IN
+  OUT
+}
+
+enum SenderType {
+  CONTACT
+  BOT
+  AGENT
+  SYSTEM
+}
+
+enum MessageStatus {
+  RECEIVED
+  SENT
+  FAILED
+}
+
+model Message {
+  id             String        @id @default(cuid())
+  workspaceId    String
+  conversationId String
+  contactId      String
+  direction      Direction
+  senderType     SenderType
+  senderUserId   String?
+  // text | image | postback | note
+  kind           String        @default("text")
+  text           String?
+  // Structured extras: { imageUrl, buttons:[{label,payload|url}], quickReplies:[{label,payload}] }
+  payload        Json?
+  externalId     String?
+  status         MessageStatus @default(SENT)
+  error          String?
+  flowId         String?
+  broadcastId    String?
+  createdAt      DateTime      @default(now())
+
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  contact      Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  senderUser   User?        @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, externalId])
+  @@index([conversationId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([broadcastId])
+}
+
+// ───────────────────────────── Automation ─────────────────────────────
+
+enum FlowStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Flow {
+  id          String     @id @default(cuid())
+  workspaceId String
+  name        String
+  status      FlowStatus @default(DRAFT)
+  // Editable graph: { nodes: [...], edges: [...] }
+  draft       Json
+  // Snapshot of the graph that is live. Null until first publish.
+  published   Json?
+  publishedAt DateTime?
+  runCount    Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workspace  Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  triggers   Trigger[]
+  runs       FlowRun[]
+  broadcasts Broadcast[]
+
+  @@index([workspaceId, updatedAt])
+}
+
+enum TriggerType {
+  KEYWORD
+  WELCOME
+  DEFAULT_REPLY
+  REF_LINK
+}
+
+model Trigger {
+  id          String      @id @default(cuid())
+  workspaceId String
+  flowId      String
+  type        TriggerType
+  enabled     Boolean     @default(true)
+  // KEYWORD: { keywords: string[], match: "contains" | "exact" | "starts_with" }
+  // REF_LINK: { ref: string }
+  // DEFAULT_REPLY: { frequency: "always" | "daily" }
+  config      Json        @default("{}")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  flow      Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, type])
+}
+
+enum RunStatus {
+  RUNNING
+  WAITING_INPUT
+  WAITING_DELAY
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+model FlowRun {
+  id          String    @id @default(cuid())
+  workspaceId String
+  flowId      String
+  contactId   String
+  status      RunStatus @default(RUNNING)
+  // Node the run is parked on while waiting.
+  nodeId      String?
+  // true when executing the draft graph (builder preview).
+  preview     Boolean   @default(false)
+  entry       String    @default("trigger")
+  // Invalid answers received while parked on a question step.
+  attempts    Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  flow      Flow      @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  contact   Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId, status])
+  @@index([workspaceId, createdAt])
+  @@index([flowId])
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+  FAILED
+}
+
+model Broadcast {
+  id          String          @id @default(cuid())
+  workspaceId String
+  name        String
+  status      BroadcastStatus @default(DRAFT)
+  // Either a plain text message or a published flow.
+  text        String?
+  flowId      String?
+  // { channelIds: string[], tagIds: string[], tagMatch: "any"|"all", excludeTagIds: string[] }
+  audience    Json            @default("{}")
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  total       Int             @default(0)
+  sent        Int             @default(0)
+  failed      Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  flow      Flow?     @relation(fields: [flowId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+}
+
+// ───────────────────────────── Background jobs ─────────────────────────────
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Job {
+  id        String    @id @default(cuid())
+  type      String
+  payload   Json
+  runAt     DateTime  @default(now())
+  status    JobStatus @default(PENDING)
+  attempts  Int       @default(0)
+  lockedAt  DateTime?
+  lastError String?
+  createdAt DateTime  @default(now())
+
+  @@index([status, runAt])
+}
+
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+}
