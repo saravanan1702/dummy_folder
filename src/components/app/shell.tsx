@@ -89,7 +89,7 @@ function ShellInner({ initialMe, children }: { initialMe: Me; children: ReactNod
 
         <aside
           className={clsx(
-            "fixed inset-y-0 left-0 z-50 flex w-[248px] shrink-0 flex-col border-r border-slate-200 bg-white transition-transform lg:static lg:translate-x-0",
+            "fixed inset-y-0 left-0 z-50 flex w-[248px] shrink-0 flex-col border-r border-slate-200 bg-white transition-transform lg:static lg:z-auto lg:translate-none",
             mobileOpen ? "translate-x-0" : "-translate-x-full",
           )}
         >
