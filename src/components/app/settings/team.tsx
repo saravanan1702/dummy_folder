@@ -209,7 +209,7 @@ export function TeamSettings() {
           try {
             await api(`/api/members/${removing!.id}`, { method: "DELETE" });
             if (removing!.userId === me.user.id) {
-              window.location.href = "/app";
+              window.location.assign("/app");
               return;
             }
             void members.mutate();

@@ -2,9 +2,9 @@
 
 import { ExternalLink, Link2, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import useSWR from "swr";
-import { CopyField, QrCode } from "@/components/app/copy";
+import { CopyField, QrCode, useOrigin } from "@/components/app/copy";
 import { Page, useCanManage } from "@/components/app/shell";
 import { ChannelIcon } from "@/components/brand";
 import { Button, EmptyState, Field, IconButton, Modal, PageHeader, PageLoader, useToast } from "@/components/ui";
@@ -21,8 +21,7 @@ interface RefTrigger {
 
 export default function GrowthPage() {
   const channels = useSWR<{ channels: ChannelDTO[] }>("/api/channels");
-  const [origin, setOrigin] = useState("");
-  useEffect(() => setOrigin(window.location.origin), []);
+  const origin = useOrigin();
 
   const webchat = channels.data?.channels.find((c) => c.type === "WEBCHAT");
 

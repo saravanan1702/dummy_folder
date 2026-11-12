@@ -171,7 +171,9 @@ function Canvas({ flow }: { flow: FlowPayload }) {
   const serialized = useMemo(() => JSON.stringify(graph), [graph]);
   const savedRef = useRef(JSON.stringify(toGraph(initial.nodes, initial.edges)));
   const latest = useRef({ graph, serialized });
-  latest.current = { graph, serialized };
+  useEffect(() => {
+    latest.current = { graph, serialized };
+  }, [graph, serialized]);
   const saving = useRef<Promise<boolean> | null>(null);
 
   const save = useCallback(async (): Promise<boolean> => {

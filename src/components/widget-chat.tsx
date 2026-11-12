@@ -60,6 +60,7 @@ export function WidgetChat({
   const scroller = useRef<HTMLDivElement>(null);
   const auth = useRef<string>("");
   const ready = useRef(false);
+  const seq = useRef(0);
   const storageKey = `chat_widget_${channelId}`;
 
   const merge = useCallback((incoming: WidgetMessage[], announce: boolean) => {
@@ -147,7 +148,7 @@ export function WidgetChat({
     if (!session || sending) return;
     setSending(true);
     setFailed(null);
-    const tempId = `tmp-${Date.now()}`;
+    const tempId = `tmp-${++seq.current}`;
     setMessages((prev) => [
       ...prev,
       { id: tempId, from: "visitor", agentName: null, kind: "text", text: shown, imageUrl: null, buttons: [], quickReplies: [], at: new Date(), pending: true },

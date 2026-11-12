@@ -1,9 +1,9 @@
 "use client";
 
 import { KeyRound, Pencil, Plus, Tag, TextCursorInput, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { CopyField } from "@/components/app/copy";
+import { CopyField, useOrigin } from "@/components/app/copy";
 import { useCanManage, useMe } from "@/components/app/shell";
 import { Badge, Button, ConfirmDialog, EmptyState, Field, IconButton, Modal, PageLoader, useToast } from "@/components/ui";
 import { api, errorMessage } from "@/lib/client";
@@ -314,8 +314,7 @@ export function ApiSettings() {
   const [secret, setSecret] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [revoking, setRevoking] = useState<ApiKeyRow | null>(null);
-  const [origin, setOrigin] = useState("");
-  useEffect(() => setOrigin(window.location.origin), []);
+  const origin = useOrigin();
 
   function close() {
     setCreating(false);

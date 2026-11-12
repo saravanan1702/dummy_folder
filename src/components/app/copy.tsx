@@ -2,8 +2,14 @@
 
 import { Check, Copy } from "lucide-react";
 import QRCode from "qrcode";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui";
+
+const noop = () => () => {};
+/** The page origin on the client, "" during server render (no hydration mismatch). */
+export function useOrigin() {
+  return useSyncExternalStore(noop, () => window.location.origin, () => "");
+}
 
 export function useCopy() {
   const [copied, setCopied] = useState(false);

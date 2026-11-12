@@ -25,6 +25,7 @@ export function serializeContact(c: ContactWithRels) {
     tags: (c.tags ?? []).map((t) => ({ id: t.tag.id, name: t.tag.name })),
     lastInboundAt: c.lastInboundAt,
     createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
   };
 }
 export type ContactDTO = ReturnType<typeof serializeContact>;

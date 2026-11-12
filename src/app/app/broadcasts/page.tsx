@@ -208,13 +208,13 @@ function NewBroadcast({ onClose, onCreated }: { onClose: () => void; onCreated: 
   const [date, setDate] = useState("");
   const [reach, setReach] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [minDate] = useState(() => new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 16));
 
   const audience = useMemo(() => ({ channelIds, tagIds, tagMatch, excludeTagIds }), [channelIds, tagIds, tagMatch, excludeTagIds]);
 
   // Live audience size.
   useEffect(() => {
     let cancelled = false;
-    setReach(null);
     const timer = setTimeout(async () => {
       try {
         const res = await api<{ count: number }>("/api/broadcasts/audience", { body: { audience } });
@@ -380,7 +380,7 @@ function NewBroadcast({ onClose, onCreated }: { onClose: () => void; onCreated: 
               Schedule for later
             </ChipToggle>
             {when === "later" && (
-              <input className="input w-auto" type="datetime-local" aria-label="Send at" value={date} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 16)} onChange={(e) => setDate(e.target.value)} />
+              <input className="input w-auto" type="datetime-local" aria-label="Send at" value={date} min={minDate} onChange={(e) => setDate(e.target.value)} />
             )}
           </div>
         </div>

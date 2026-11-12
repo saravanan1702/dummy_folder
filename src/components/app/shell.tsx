@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import useSWR, { SWRConfig } from "swr";
 import { LogoMark } from "@/components/brand";
 import { Avatar, Button, Field, Menu, MenuItem, Modal, ToastProvider, useToast } from "@/components/ui";
@@ -71,8 +71,6 @@ function ShellInner({ initialMe, children }: { initialMe: Me; children: ReactNod
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => setMobileOpen(false), [pathname]);
-
   return (
     <MeContext.Provider value={{ me, refresh: () => void mutate() }}>
       <div className="flex h-dvh overflow-hidden bg-canvas">
@@ -110,6 +108,7 @@ function ShellInner({ initialMe, children }: { initialMe: Me; children: ReactNod
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
+                  onClick={() => setMobileOpen(false)}
                   className={clsx(
                     "group flex items-center gap-3 rounded-lg px-3 py-2 text-[14px] font-medium transition-colors",
                     active ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-100 hover:text-ink",
@@ -178,7 +177,7 @@ function WorkspaceSwitcher() {
     if (id === me.workspace.id) return;
     try {
       await api("/api/workspaces/switch", { body: { id } });
-      window.location.href = "/app";
+      window.location.assign("/app");
     } catch (err) {
       toast(errorMessage(err), "error");
     }
@@ -250,7 +249,7 @@ function WorkspaceSwitcher() {
                 setBusy(true);
                 try {
                   await api("/api/workspaces", { body: { name } });
-                  window.location.href = "/app";
+                  window.location.assign("/app");
                 } catch (err) {
                   toast(errorMessage(err), "error");
                   setBusy(false);
@@ -303,7 +302,7 @@ function UserMenu() {
             onClick={async () => {
               close();
               await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
-              window.location.href = "/login";
+              window.location.assign("/login");
             }}
           >
             Sign out

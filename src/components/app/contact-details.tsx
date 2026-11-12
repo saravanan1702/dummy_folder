@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Plus, Send, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { ChannelIcon, channelLabel } from "@/components/brand";
 import { Avatar, Badge, Button, Field, Menu, MenuItem, Modal, Spinner, useToast } from "@/components/ui";
@@ -46,7 +46,6 @@ function InlineEdit({
   label: string;
 }) {
   const [draft, setDraft] = useState(value ?? "");
-  useEffect(() => setDraft(value ?? ""), [value]);
   return (
     <input
       aria-label={label}
@@ -152,16 +151,16 @@ export function ContactDetails({
       <section className="border-t border-slate-100 px-5 py-4">
         <h4 className="mb-1.5 font-sans text-xs font-semibold uppercase tracking-wide text-slate-500">Details</h4>
         <Row label="First name">
-          <InlineEdit label="First name" value={contact.firstName} placeholder="Add" onSave={(v) => patch({ firstName: v || null })} />
+          <InlineEdit key={String(contact.updatedAt ?? "")} label="First name" value={contact.firstName} placeholder="Add" onSave={(v) => patch({ firstName: v || null })} />
         </Row>
         <Row label="Last name">
-          <InlineEdit label="Last name" value={contact.lastName} placeholder="Add" onSave={(v) => patch({ lastName: v || null })} />
+          <InlineEdit key={String(contact.updatedAt ?? "")} label="Last name" value={contact.lastName} placeholder="Add" onSave={(v) => patch({ lastName: v || null })} />
         </Row>
         <Row label="Email">
-          <InlineEdit label="Email" type="email" value={contact.email} placeholder="Add" onSave={(v) => patch({ email: v || null })} />
+          <InlineEdit key={String(contact.updatedAt ?? "")} label="Email" type="email" value={contact.email} placeholder="Add" onSave={(v) => patch({ email: v || null })} />
         </Row>
         <Row label="Phone">
-          <InlineEdit label="Phone" type="tel" value={contact.phone} placeholder="Add" onSave={(v) => patch({ phone: v || null })} />
+          <InlineEdit key={String(contact.updatedAt ?? "")} label="Phone" type="tel" value={contact.phone} placeholder="Add" onSave={(v) => patch({ phone: v || null })} />
         </Row>
         <Row label="Subscribed">{formatDate(contact.createdAt)}</Row>
         <Row label="Last message">{contact.lastInboundAt ? formatDateTime(contact.lastInboundAt) : "—"}</Row>
@@ -243,7 +242,7 @@ export function ContactDetails({
           <h4 className="mb-1.5 font-sans text-xs font-semibold uppercase tracking-wide text-slate-500">Custom fields</h4>
           {fields.data!.fields.map((f) => (
             <Row key={f.id} label={f.label}>
-              <InlineEdit label={f.label} value={contact.fields[f.key] ?? null} placeholder="—" onSave={(v) => patch({ fields: { [f.key]: v } })} />
+              <InlineEdit key={String(contact.updatedAt ?? "")} label={f.label} value={contact.fields[f.key] ?? null} placeholder="—" onSave={(v) => patch({ fields: { [f.key]: v } })} />
             </Row>
           ))}
         </section>

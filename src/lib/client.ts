@@ -26,7 +26,7 @@ export async function api<T = unknown>(
   const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string }) | null;
   if (!res.ok) {
     if (res.status === 401 && typeof window !== "undefined" && window.location.pathname.startsWith("/app")) {
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+      window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
     }
     throw new RequestError(
       data?.error ?? "Something went wrong. Please try again.",

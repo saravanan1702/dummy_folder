@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { ArrowRight, Check, Inbox, MessageCircle, Send, Users, Workflow, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import useSWR from "swr";
 import { Page, useMe } from "@/components/app/shell";
 import { ChannelIcon, channelLabel } from "@/components/brand";
@@ -201,16 +201,20 @@ export default function DashboardPage() {
 function GettingStarted() {
   const { me } = useMe();
   const { data } = useSWR<{ channels: ChannelDTO[] }>("/api/channels");
-  const [dismissed, setDismissed] = useState(true);
   const storageKey = `cv_onboarding_${me.workspace.id}`;
-
-  useEffect(() => {
-    try {
-      setDismissed(localStorage.getItem(storageKey) === "1");
-    } catch {
-      setDismissed(false);
-    }
-  }, [storageKey]);
+  const stored = useSyncExternalStore(
+    () => () => {},
+    () => {
+      try {
+        return localStorage.getItem(storageKey) === "1";
+      } catch {
+        return false;
+      }
+    },
+    () => true,
+  );
+  const [hidden, setDismissed] = useState(false);
+  const dismissed = stored || hidden;
 
   const webchat = data?.channels.find((c) => c.type === "WEBCHAT");
   const steps = [
