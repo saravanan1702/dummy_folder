@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for Docker / any Node host.
   output: "standalone",
   poweredByHeader: false,
+  // Don't write an AGENTS.md into the project on `next dev`.
+  agentRules: false,
   serverExternalPackages: ["pg"],
   async headers() {
     return [

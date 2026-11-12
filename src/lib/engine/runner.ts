@@ -48,6 +48,15 @@ export function parseGraph(json: unknown): FlowGraph | null {
   return parsed.success ? parsed.data : null;
 }
 
+/** The graph a run executes: the draft for builder previews, otherwise the published snapshot of a live flow. */
+function liveGraph(
+  flow: { status: string; draft: unknown; published: unknown },
+  preview: boolean,
+): FlowGraph | null {
+  if (preview) return parseGraph(flow.draft);
+  return flow.status === "PUBLISHED" ? parseGraph(flow.published) : null;
+}
+
 async function loadSubject(contactId: string) {
   const contact = await db.contact.findUnique({
     where: { id: contactId },
@@ -80,7 +89,7 @@ export async function startFlow(opts: StartOptions): Promise<boolean> {
   if (!subject) return false;
   const flow = await db.flow.findFirst({ where: { id: opts.flowId, workspaceId: subject.contact.workspaceId } });
   if (!flow) return false;
-  const graph = parseGraph(opts.preview ? flow.draft : flow.published);
+  const graph = liveGraph(flow, !!opts.preview);
   if (!graph) return false;
   const trigger = findTrigger(graph);
   if (!trigger) return false;
@@ -135,7 +144,7 @@ export async function continueFromHandle(opts: {
   if (opts.preview && !subject.contact.isPreview) return false;
   const flow = await db.flow.findFirst({ where: { id: opts.flowId, workspaceId: subject.contact.workspaceId } });
   if (!flow) return false;
-  const graph = parseGraph(opts.preview ? flow.draft : flow.published);
+  const graph = liveGraph(flow, opts.preview);
   if (!graph) return false;
   const target = nextNodeId(graph, opts.nodeId, opts.handle);
   if (!target) return false;
@@ -181,7 +190,7 @@ export async function resumeRun(runId: string): Promise<void> {
   if (!run || !run.nodeId) return;
 
   const subject = await loadSubject(run.contactId);
-  const graph = parseGraph(run.preview ? run.flow.draft : run.flow.published);
+  const graph = liveGraph(run.flow, run.preview);
   if (!subject || !graph || !graph.nodes.some((n) => n.id === run.nodeId)) {
     await db.flowRun.update({ where: { id: run.id }, data: { status: "CANCELLED" } });
     return;
@@ -217,7 +226,7 @@ export async function feedInput(contactId: string, text: string): Promise<boolea
   if (!run || !run.nodeId) return false;
 
   const subject = await loadSubject(contactId);
-  const graph = parseGraph(run.preview ? run.flow.draft : run.flow.published);
+  const graph = liveGraph(run.flow, run.preview);
   const node = graph?.nodes.find((n) => n.id === run.nodeId);
   if (!subject || !graph || !node || node.type !== "input") {
     await db.flowRun.update({ where: { id: run.id }, data: { status: "CANCELLED" } });
@@ -360,7 +369,8 @@ async function execute(ctx: RunContext, startNodeId: string | null, broadcastId?
         case "goto": {
           if (++ctx.hops > MAX_GOTO_HOPS) throw new Error("Flow stopped: too many nested flows.");
           const target = await db.flow.findFirst({ where: { id: node.data.flowId, workspaceId: ctx.workspaceId } });
-          const graph = parseGraph(target?.published ?? (ctx.preview ? target?.draft : null));
+          const targetLive = target ? liveGraph(target, false) : null;
+          const graph = targetLive ?? (target && ctx.preview ? liveGraph(target, true) : null);
           const trigger = graph ? findTrigger(graph) : null;
           if (!target || !graph || !trigger) throw new Error("The flow to start is missing or not published.");
           await finish(ctx, "COMPLETED");
@@ -370,7 +380,7 @@ async function execute(ctx: RunContext, startNodeId: string | null, broadcastId?
               flowId: target.id,
               contactId: ctx.contact.id,
               entry: "goto",
-              preview: ctx.preview && !target.published,
+              preview: !targetLive,
             },
           });
           if (!ctx.preview) await db.flow.update({ where: { id: target.id }, data: { runCount: { increment: 1 } } });
@@ -378,7 +388,7 @@ async function execute(ctx: RunContext, startNodeId: string | null, broadcastId?
           ctx.flowName = target.name;
           ctx.graph = graph;
           ctx.runId = run.id;
-          ctx.preview = ctx.preview && !target.published;
+          ctx.preview = !targetLive;
           current = nextNodeId(graph, trigger.id, HANDLE_NEXT);
           break;
         }
